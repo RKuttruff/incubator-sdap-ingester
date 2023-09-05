@@ -45,6 +45,7 @@ class CoGPipeline(Pipeline):
                  dataset: str,
                  granule_s: str,
                  dims: dict,
+                 config: dict,
                  log_level=logging.INFO):
         self._granule_loader = granule_loader
         self._metadata_store_factory = metadata_store_factory
@@ -52,6 +53,7 @@ class CoGPipeline(Pipeline):
         self._granule = granule_s
         self._dims = dims
         self._level = log_level
+        self._config = config
 
     def set_log_level(self, level):
         self._level = level
@@ -71,7 +73,8 @@ class CoGPipeline(Pipeline):
             metadata_store_factory,
             config['dataset_name'],
             config['granule']['granule_s'],
-            config['dimensions']
+            config['dimensions'],
+            config.get('config', {})
         )
 
     async def run(self):
@@ -110,12 +113,15 @@ class CoGPipeline(Pipeline):
             #     bounds['max_elevation_l'] = np.nanmax(elevation)
             #     bounds['min_elevation_l'] = np.nanmin(elevation)
 
-        await self._metadata_store_factory().save_granule(self._granule, self._dataset, bounds)
+        await self._metadata_store_factory().save_granule(self._granule, self._dataset, bounds, self._granule_loader.get_resource())
 
         variables = json.loads(self._dims['variable'])
 
         config = {
             'bands': dict(chain(*[d.items() for d in variables]))
         }
+
+        if self._config:
+            config['config'] = self._config
 
         await self._metadata_store_factory().update_dataset(self._dataset, 'cog', config)

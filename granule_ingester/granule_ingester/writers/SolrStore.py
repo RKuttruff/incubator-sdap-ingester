@@ -124,7 +124,7 @@ class SolrStore(MetadataStore):
 
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=1, max=12))
-    async def save_granule(self, granule: str, dataset: str, bounds: dict):
+    async def save_granule(self, granule: str, dataset: str, bounds: dict, path: str):
         docs = self._solr_granules.search(f'dataset_s:{dataset}', fq=f'granule_s:{granule}')
 
         if len(docs) == 0:
@@ -139,6 +139,8 @@ class SolrStore(MetadataStore):
             doc = next(iter(docs))
 
         doc.update(bounds)
+
+        doc['path_s'] = path
 
         try:
             self._solr_granules.add([doc])
