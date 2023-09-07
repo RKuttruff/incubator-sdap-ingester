@@ -42,6 +42,11 @@ class GranuleLoader:
 
         self._tiff = False
 
+        if 'group' in kwargs:
+            self._group = kwargs['group']
+        else:
+            self._group = None
+
         if 'preprocess' in kwargs:
             self._preprocess = [GranuleLoader._parse_module(module) for module in kwargs['preprocess']]
 
@@ -105,7 +110,12 @@ class GranuleLoader:
 
                 return tiff, granule_name
             else:
-                ds = xr.open_dataset(file_path, lock=False)
+                additional_params = {}
+
+                if self._group is not None:
+                    additional_params['group'] = self._group
+
+                ds = xr.open_dataset(file_path, lock=False, **additional_params)
 
                 if self._preprocess is not None:
                     logger.info(f'There are {len(self._preprocess)} preprocessors to apply for granule {self._resource}')
