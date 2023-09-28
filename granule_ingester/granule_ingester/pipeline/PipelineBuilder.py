@@ -17,6 +17,7 @@ import logging
 from abc import ABC, abstractmethod
 
 import yaml
+import json
 from granule_ingester.exceptions import PipelineBuildingError
 from granule_ingester.pipeline import NexusprotoPipeline, CoGPipeline, Pipeline
 from granule_ingester.pipeline.Modules import \
@@ -31,6 +32,11 @@ class PipelineBuilder():
         logger.debug(f'config_str: {config_str}')
         try:
             config = yaml.load(config_str, yaml.FullLoader)
+
+            if 'time_dict' in config['dimensions']:
+                config['dimensions']['time'] = json.loads(config['dimensions']['time_dict'])
+                del config['dimensions']['time_dict']
+
             PipelineBuilder._validate_config(config)
 
             pipeline_class = None

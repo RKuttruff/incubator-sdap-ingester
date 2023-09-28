@@ -60,6 +60,11 @@ class Collection:
         - if it has `variable`, converting it to single element list
         - if it has `variables`, keeping it as a list while renmaing the key to `variable`
         """
+
+        if isinstance(dimension_names_dict['time'], dict):
+            dimension_names_dict['time_dict'] = json.dumps(dimension_names_dict['time'])
+            del dimension_names_dict['time']
+
         if 'variable' in dimension_names_dict and 'variables' in dimension_names_dict:
             raise RuntimeError('both variable and variables present in dimensionNames. Only one is allowed')
         new_dimension_names = [(k, v) for k, v in dimension_names_dict.items() if k not in ['variable', 'variables']]
