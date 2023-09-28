@@ -16,9 +16,11 @@
 import logging
 import os
 import tempfile
+import re
 from urllib import parse
 import json
 from itertools import chain
+from datetime import datetime
 
 import aioboto3
 import rioxarray
@@ -83,22 +85,43 @@ class GranuleLoader:
         try:
             if self._tiff:
                 def determine_time(granule_path: str):
-                    time_date_str = PurePosixPath(granule_path).stem.split('_')[-1]
-                    time_parts = time_date_str.partition('T')
-                    time_str = time_parts[2]
-                    date_str = time_parts[0]
-                    # time_date_str = time_parts[0] + time_parts[1] + time_str[:2] + ':' + time_str[2:4] + ':' + time_str[
-                    #                                                                                            4:]
-                    time_date_str = (f'{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}T'
-                                     f'{time_str[:2]}:{time_str[2:4]}:{time_str[4:]}').rstrip('Z')
+                    time_d = self._dims['time']
 
-                    time_val = np.datetime64(time_date_str)
+                    if isinstance(time_d, dict):
+                        if 'field' in time_d:
+                            field = time_d['field']
 
-                    return time_val
+                            time_string = re.split(
+                                field['delimiter'],
+                                os.path.basename(granule_path)
+                            )[field['n']]
+                        elif 'index' in time_d:
+                            idx = time_d['index']
+
+                            time_string = os.path.basename(granule_path)[idx['start']:idx['end']]
+                        else:
+                            raise ValueError('Time dimension imporperly configured')
+
+                        time_dt = datetime.strptime(time_string, time_d['format'])
+
+                        return np.datetime64(time_dt)
+                    else:
+                        logger.warning('No clear definition of tiff time given, using default')
+
+                        time_date_str = PurePosixPath(granule_path).stem.split('_')[-1]
+                        time_parts = time_date_str.partition('T')
+                        time_str = time_parts[2]
+                        date_str = time_parts[0]
+                        time_date_str = (f'{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}T'
+                                         f'{time_str[:2]}:{time_str[2:4]}:{time_str[4:]}').rstrip('Z')
+
+                        time_val = np.datetime64(time_date_str)
+
+                        return time_val
 
                 granule_time = determine_time(granule_name)
 
-                tiff = rioxarray.open_rasterio(file_path).to_dataset("band")
+                tiff = rioxarray.open_rasterio(file_path, mask_and_scale=True, band_as_variable=True)
 
                 try:
                     tiff = tiff.rio.reproject(dst_crs='EPSG:4326', nodata=np.nan)
