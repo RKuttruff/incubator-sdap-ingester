@@ -141,6 +141,19 @@ class SolrIngestionHistory(IngestionHistory):
                 self._add_field(schema_endpoint, "granule_s", "string")
                 self._add_field(schema_endpoint, "granule_signature_s", "string")
 
+                self._add_field_type(
+                    schema_endpoint,
+                    'geo',
+                    'solr.SpatialRecursivePrefixTreeFieldType',
+                    geo='true',
+                    precisionModel='fixed',
+                    maxDistErr='0.000009',
+                    spatialContextFactory='com.spatial4j.core.context.jts.JtsSpatialContextFactory',
+                    precisionScale="1000",
+                    distErrPct="0.025",
+                    distanceUnits='degrees'
+                )
+
             if self._dataset_collection_name not in existing_collections:
                 # Create collection
                 payload = {'action': 'CREATE',
@@ -180,14 +193,17 @@ class SolrIngestionHistory(IngestionHistory):
         }
         return self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
 
+    def _add_field_type(self, schema_url, type_name, type_class, **field_params):
+        payload = {
+            "add-field-type": dict(
+                name=type_name,
+                **{'class': type_class},
+                **field_params
+            )
+        }
+        return self._req_session.post(schema_url, data=str(payload).encode('utf-8'))
+
     def _add_dynamic_field(self, schema_url, field_name, field_type, stored=False):
-        """
-        Helper to add a string field in a solr schema
-        :param schema_url:
-        :param field_name:
-        :param field_type
-        :return:
-        """
         add_field_payload = {
             "add-dynamic-field": {
                 "name": field_name,
