@@ -29,11 +29,12 @@ from granule_ingester.pipeline.Modules import \
     modules as processor_module_mappings
 from granule_ingester.processors.TileProcessor import TileProcessor
 from granule_ingester.slicers import TileSlicer
-from granule_ingester.writers import DataStore, MetadataStore
+from granule_ingester.writers import DataStore, MetadataStore, SolrStore
 from tblib import pickling_support
 import numpy as np
 import json
 from itertools import chain
+from nexusproto.DataTile_pb2 import TileSummary
 
 logger = logging.getLogger(__name__)
 
@@ -109,11 +110,26 @@ class CoGPipeline(Pipeline):
             bounds['max_lat_d'] = np.nanmax(lats)
             bounds['min_lat_d'] = np.nanmin(lats)
 
+            bbox = TileSummary().bbox
+
+            bbox.lat_max = bounds['max_lat_d']
+            bbox.lat_min = bounds['min_lat_d']
+            bbox.lon_max = bounds['max_lon_d']
+            bbox.lon_min = bounds['min_lon_d']
+
+            geo = SolrStore.determine_geo(bbox)
+
             # if elevation:
             #     bounds['max_elevation_l'] = np.nanmax(elevation)
             #     bounds['min_elevation_l'] = np.nanmin(elevation)
 
-        await self._metadata_store_factory().save_granule(self._granule, self._dataset, bounds, self._granule_loader.get_resource())
+        await self._metadata_store_factory().save_granule(
+            self._granule,
+            self._dataset,
+            bounds,
+            self._granule_loader.get_resource(),
+            geo
+        )
 
         variables = json.loads(self._dims['variable'])
 
