@@ -51,7 +51,7 @@ class Collection:
     processors: str = None
     group: str = None
     store_type: str = None
-    config: frozenset = None
+    config: str = None
 
     @staticmethod
     def __decode_dimension_names(dimension_names_dict):
@@ -112,7 +112,7 @@ class Collection:
                                     processors=extra_processors,
                                     group=properties.get('group'),
                                     store_type=store_type,
-                                    config=frozenset(config.items())
+                                    config=json.dumps(config)
                                     )
             return collection
         except KeyError as e:

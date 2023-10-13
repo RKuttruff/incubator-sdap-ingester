@@ -157,7 +157,7 @@ class CollectionProcessor:
             }
         elif collection.store_type in ['cog', 'cloud_optimized_geotiff']:
             config_dict['dimensions'] = dict(collection.dimension_names)
-            config_dict['config'] = dict(collection.config)
+            config_dict['config'] = json.loads(collection.config)
 
 
         if collection.preprocess is not None:
