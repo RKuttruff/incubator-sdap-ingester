@@ -32,6 +32,9 @@ COPY granule_ingester/docker/entrypoint.sh /entrypoint.sh
 
 RUN ./install_nexusproto.sh
 RUN cd /common && python setup.py install
+
+RUN cd /sdap && conda install -yc conda-forge --file conda-requirements.txt && conda clean -afy
+
 RUN cd /sdap && python setup.py install
 
 RUN pip install boto3==1.16.10

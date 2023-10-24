@@ -13,16 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-numpy>=1.15.4
-scipy
-netcdf4>=1.5.3
-pandas>=1.0.4
-pytz>=2019.3
-xarray>=0.19.0
-pyyaml>=5.3.1
+numpy==1.24.2
+scipy==1.10.1
+netcdf4==1.6.3
+pandas==1.5.3
+pytz==2023.3.post1
+xarray==2023.1.0
+pyyaml==6.0.1
 aiohttp==3.6.2
-tenacity
-requests>=2.27.1
-rioxarray
+tenacity==8.2.3
+requests==2.31.0
+rioxarray==0.13.4
 urllib3==1.26.2
-
+python==3.8.17
