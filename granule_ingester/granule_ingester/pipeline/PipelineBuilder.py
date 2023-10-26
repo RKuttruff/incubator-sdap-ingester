@@ -33,7 +33,7 @@ class PipelineBuilder():
         try:
             config = yaml.load(config_str, yaml.FullLoader)
 
-            if 'time_dict' in config['dimensions']:
+            if 'dimensions' in config and 'time_dict' in config['dimensions']:
                 config['dimensions']['time'] = json.loads(config['dimensions']['time_dict'])
                 del config['dimensions']['time_dict']
 
