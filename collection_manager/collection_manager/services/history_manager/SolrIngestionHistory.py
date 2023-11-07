@@ -191,7 +191,7 @@ class SolrIngestionHistory(IngestionHistory):
                 response = result.json()
                 logger.info(f"solr collection created {response}")
 
-            logger.info(f'Validating collection schema for {self._granule_collection_name}')
+            logger.info(f'Validating collection schema for {self._dataset_collection_name}')
 
             collection_schema = self._req_session.get(schema_endpoint).json()
 
@@ -200,7 +200,7 @@ class SolrIngestionHistory(IngestionHistory):
             collection_dynamic_fields = collection_schema['schema'].get('dynamicFields')
 
             self._add_field(schema_endpoint, collection_fields, "dataset_s", "string")
-            self._add_field(schema_endpoint, collection_fields, "latest_update_l", "TrieLongField")
+            self._add_field(schema_endpoint, collection_fields, "latest_update_l", "plong")
             self._add_field(schema_endpoint, collection_fields, "store_type_s", "string", True)
             self._add_field(schema_endpoint, collection_fields, "source_s", "string", True)
             self._add_field(schema_endpoint, collection_fields, "config", "text_general", True)
@@ -231,7 +231,12 @@ class SolrIngestionHistory(IngestionHistory):
 
         logger.info(f'Adding field {field_name} of type {field_type}')
 
-        return self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
+        response = self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
+        if not response.ok:
+            logger.warning(f'Add field POST failed: {response.text}')
+            return False
+
+        return True
 
     def _add_field_type(self, schema_url, field_type_list, type_name, type_class, **field_params):
         if SolrIngestionHistory._exists_or_none(field_type_list, type_name):
@@ -248,7 +253,12 @@ class SolrIngestionHistory(IngestionHistory):
 
         logger.info(f'Adding field type {type_name} of class {type_class} with params {field_params}')
 
-        return self._req_session.post(schema_url, data=str(payload).encode('utf-8'))
+        response = self._req_session.post(schema_url, data=str(payload).encode('utf-8'))
+        if not response.ok:
+            logger.warning(f'Add field type POST failed: {response.text}')
+            return False
+
+        return True
 
     def _add_dynamic_field(self, schema_url, dynamic_field_list, field_name, field_type, stored=False):
         if SolrIngestionHistory._exists_or_none(dynamic_field_list, field_name):
@@ -265,7 +275,12 @@ class SolrIngestionHistory(IngestionHistory):
 
         logger.info(f'Adding dynamic field {field_name} of type {field_type}')
 
-        return self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
+        response = self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
+        if not response.ok:
+            logger.warning(f'Add dynamic field POST failed: {response.text}')
+            return False
+
+        return True
 
     @staticmethod
     def _exists_or_none(schema: list, name:str):

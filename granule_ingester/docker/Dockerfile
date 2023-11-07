@@ -34,10 +34,10 @@ ARG BUILD_NEXUSPROTO
 ARG APACHE_NEXUSPROTO=https://github.com/apache/incubator-sdap-nexusproto.git
 ARG APACHE_NEXUSPROTO_BRANCH=master
 
+RUN cd /sdap && conda install -yc conda-forge --file conda-requirements.txt && conda clean -afy
+
 RUN ./install_nexusproto.sh
 RUN cd /common && python setup.py install
-
-RUN cd /sdap && conda install -yc conda-forge --file conda-requirements.txt && conda clean -afy
 
 RUN cd /sdap && python setup.py install
 
