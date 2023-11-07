@@ -18,7 +18,10 @@ from granule_ingester.processors import (GenerateTileId,
                                          EmptyTileFilter,
                                          KelvinToCelsius,
                                          Subtract180FromLongitude,
-                                         ForceAscendingLatitude)
+                                         ForceAscendingLatitude,
+                                         ElevationBounds,
+                                         ElevationOffset,
+                                         VerifyProcessor)
 from granule_ingester.processors.reading_processors import (EccoReadingProcessor,
                                                             GridReadingProcessor,
                                                             SwathReadingProcessor,
@@ -42,5 +45,8 @@ modules = {
     "emptyTileFilter": EmptyTileFilter,
     "kelvinToCelsius": KelvinToCelsius,
     "subtract180FromLongitude": Subtract180FromLongitude,
-    "forceAscendingLatitude": ForceAscendingLatitude
+    "forceAscendingLatitude": ForceAscendingLatitude,
+    "elevationBounds": ElevationBounds,
+    "elevationOffset": ElevationOffset,
+    "verifyShape": VerifyProcessor
 }
