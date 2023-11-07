@@ -217,7 +217,7 @@ class SolrIngestionHistory(IngestionHistory):
         :param field_type
         :return:
         """
-        if not SolrIngestionHistory._exists_or_none(field_list, field_name):
+        if SolrIngestionHistory._exists_or_none(field_list, field_name):
             logger.debug(f'Field {field_name} already exists')
             return True
 
@@ -234,7 +234,7 @@ class SolrIngestionHistory(IngestionHistory):
         return self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
 
     def _add_field_type(self, schema_url, field_type_list, type_name, type_class, **field_params):
-        if not SolrIngestionHistory._exists_or_none(field_type_list, type_name):
+        if SolrIngestionHistory._exists_or_none(field_type_list, type_name):
             logger.debug(f'Field type {type_name} already exists')
             return True
 
@@ -251,7 +251,7 @@ class SolrIngestionHistory(IngestionHistory):
         return self._req_session.post(schema_url, data=str(payload).encode('utf-8'))
 
     def _add_dynamic_field(self, schema_url, dynamic_field_list, field_name, field_type, stored=False):
-        if not SolrIngestionHistory._exists_or_none(dynamic_field_list, field_name):
+        if SolrIngestionHistory._exists_or_none(dynamic_field_list, field_name):
             logger.debug(f'Dynamic field {field_name} already exists')
             return True
 
