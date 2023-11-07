@@ -125,6 +125,8 @@ class SolrIngestionHistory(IngestionHistory):
 
             existing_collections = response['cluster']['collections'].keys()
 
+            schema_endpoint = f"{self._url_prefix}/{self._granule_collection_name}/schema"
+
             if self._granule_collection_name not in existing_collections:
                 # Create collection
                 payload = {'action': 'CREATE',
@@ -135,24 +137,49 @@ class SolrIngestionHistory(IngestionHistory):
                 response = result.json()
                 logger.info(f"solr collection created {response}")
 
-                # Update schema
-                schema_endpoint = f"{self._url_prefix}/{self._granule_collection_name}/schema"
-                self._add_field(schema_endpoint, "dataset_s", "string")
-                self._add_field(schema_endpoint, "granule_s", "string")
-                self._add_field(schema_endpoint, "granule_signature_s", "string")
+            logger.info(f'Validating collection schema for {self._granule_collection_name}')
 
-                self._add_field_type(
-                    schema_endpoint,
-                    'geo',
-                    'solr.SpatialRecursivePrefixTreeFieldType',
-                    geo='true',
-                    precisionModel='fixed',
-                    maxDistErr='0.000009',
-                    spatialContextFactory='com.spatial4j.core.context.jts.JtsSpatialContextFactory',
-                    precisionScale="1000",
-                    distErrPct="0.025",
-                    distanceUnits='degrees'
-                )
+            collection_schema = self._req_session.get(schema_endpoint).json()
+
+            collection_fields = collection_schema['schema'].get('fields')
+            collection_field_types = collection_schema['schema'].get('fieldTypes')
+            collection_dynamic_fields = collection_schema['schema'].get('dynamicFields')
+
+            self._add_field_type(
+                schema_endpoint,
+                collection_field_types,
+                'geo',
+                'solr.SpatialRecursivePrefixTreeFieldType',
+                geo='true',
+                precisionModel='fixed',
+                maxDistErr='0.000009',
+                spatialContextFactory='com.spatial4j.core.context.jts.JtsSpatialContextFactory',
+                precisionScale="1000",
+                distErrPct="0.025",
+                distanceUnits='degrees'
+            )
+
+            self._add_field(schema_endpoint, collection_fields, "dataset_s", "string")
+            self._add_field(schema_endpoint, collection_fields, "granule_s", "string")
+            self._add_field(schema_endpoint, collection_fields, "granule_signature_s", "string")
+            self._add_field(schema_endpoint, collection_fields, "geo", "geo")
+
+            self._add_field_type(
+                schema_endpoint,
+                collection_field_types,
+                'geo',
+                'solr.SpatialRecursivePrefixTreeFieldType',
+                geo='true',
+                precisionModel='fixed',
+                maxDistErr='0.000009',
+                spatialContextFactory='com.spatial4j.core.context.jts.JtsSpatialContextFactory',
+                precisionScale="1000",
+                distErrPct="0.025",
+                distanceUnits='degrees'
+            )
+
+            # Datasets Collection
+            schema_endpoint = f"{self._url_prefix}/{self._dataset_collection_name}/schema"
 
             if self._dataset_collection_name not in existing_collections:
                 # Create collection
@@ -164,19 +191,25 @@ class SolrIngestionHistory(IngestionHistory):
                 response = result.json()
                 logger.info(f"solr collection created {response}")
 
-                # Update schema
-                schema_endpoint = f"{self._url_prefix}/{self._dataset_collection_name}/schema"
-                self._add_field(schema_endpoint, "dataset_s", "string")
-                self._add_field(schema_endpoint, "latest_update_l", "TrieLongField")
-                self._add_field(schema_endpoint, "store_type_s", "string", True)
-                self._add_field(schema_endpoint, "source_s", "string", True)
-                self._add_field(schema_endpoint, "config", "text_general", True)
+            logger.info(f'Validating collection schema for {self._granule_collection_name}')
+
+            collection_schema = self._req_session.get(schema_endpoint).json()
+
+            collection_fields = collection_schema['schema'].get('fields')
+            collection_field_types = collection_schema['schema'].get('fieldTypes')
+            collection_dynamic_fields = collection_schema['schema'].get('dynamicFields')
+
+            self._add_field(schema_endpoint, collection_fields, "dataset_s", "string")
+            self._add_field(schema_endpoint, collection_fields, "latest_update_l", "TrieLongField")
+            self._add_field(schema_endpoint, collection_fields, "store_type_s", "string", True)
+            self._add_field(schema_endpoint, collection_fields, "source_s", "string", True)
+            self._add_field(schema_endpoint, collection_fields, "config", "text_general", True)
 
         except requests.exceptions.RequestException as e:
             logger.error(f"solr instance unreachable {self._solr_url}")
             raise e
 
-    def _add_field(self, schema_url, field_name, field_type, stored=False):
+    def _add_field(self, schema_url, field_list, field_name, field_type, stored=False):
         """
         Helper to add a string field in a solr schema
         :param schema_url:
@@ -184,6 +217,10 @@ class SolrIngestionHistory(IngestionHistory):
         :param field_type
         :return:
         """
+        if not SolrIngestionHistory._exists_or_none(field_list, field_name):
+            logger.debug(f'Field {field_name} already exists')
+            return True
+
         add_field_payload = {
             "add-field": {
                 "name": field_name,
@@ -191,9 +228,16 @@ class SolrIngestionHistory(IngestionHistory):
                 "stored": stored
             }
         }
+
+        logger.info(f'Adding field {field_name} of type {field_type}')
+
         return self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
 
-    def _add_field_type(self, schema_url, type_name, type_class, **field_params):
+    def _add_field_type(self, schema_url, field_type_list, type_name, type_class, **field_params):
+        if not SolrIngestionHistory._exists_or_none(field_type_list, type_name):
+            logger.debug(f'Field type {type_name} already exists')
+            return True
+
         payload = {
             "add-field-type": dict(
                 name=type_name,
@@ -201,9 +245,16 @@ class SolrIngestionHistory(IngestionHistory):
                 **field_params
             )
         }
+
+        logger.info(f'Adding field type {type_name} of class {type_class} with params {field_params}')
+
         return self._req_session.post(schema_url, data=str(payload).encode('utf-8'))
 
-    def _add_dynamic_field(self, schema_url, field_name, field_type, stored=False):
+    def _add_dynamic_field(self, schema_url, dynamic_field_list, field_name, field_type, stored=False):
+        if not SolrIngestionHistory._exists_or_none(dynamic_field_list, field_name):
+            logger.debug(f'Dynamic field {field_name} already exists')
+            return True
+
         add_field_payload = {
             "add-dynamic-field": {
                 "name": field_name,
@@ -211,7 +262,21 @@ class SolrIngestionHistory(IngestionHistory):
                 "stored": stored
             }
         }
+
+        logger.info(f'Adding dynamic field {field_name} of type {field_type}')
+
         return self._req_session.post(schema_url, data=str(add_field_payload).encode('utf-8'))
+
+    @staticmethod
+    def _exists_or_none(schema: list, name:str):
+        if schema is None:
+            return True
+
+        for e in schema:
+            if 'name' in e and e['name'] == name:
+                return True
+
+        return False
 
 
 class DatasetIngestionHistorySolrException(Exception):
