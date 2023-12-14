@@ -85,8 +85,6 @@ class Collection:
 
             new_dimension_names.append(('variable', json.dumps(dimension_names_dict['variable'])))
 
-            print(new_dimension_names)
-
             return new_dimension_names
         if 'variables' in dimension_names_dict:
             if not isinstance(dimension_names_dict['variables'], list):
