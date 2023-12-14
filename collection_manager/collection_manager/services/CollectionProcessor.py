@@ -124,11 +124,22 @@ class CollectionProcessor:
 
     @staticmethod
     def _get_default_processors(collection: Collection):
+        reading_processor = {
+            'name': collection.projection,
+            **dict(collection.dimension_names),
+        }
+
+        variables = json.loads(reading_processor['variable'])
+
+        if not isinstance(variables, list):
+            reading_processor['variable'] = json.dumps(variables['name'])
+        else:
+            reading_processor['variable'] = json.dumps(
+                [v['name'] for v in variables]
+            )
+
         processors = [
-            {
-                'name': collection.projection,
-                **dict(collection.dimension_names),
-            },
+            reading_processor,
             {'name': 'emptyTileFilter'},
             {'name': 'subtract180FromLongitude'}
         ]
