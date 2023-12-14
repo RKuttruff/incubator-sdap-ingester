@@ -17,6 +17,7 @@ import json
 import logging
 import os.path
 from typing import Dict, Optional
+from datetime import datetime
 
 import yaml
 from collection_manager.entities import Collection
@@ -75,6 +76,15 @@ class CollectionProcessor:
         await self._publisher.publish_message(body=dataset_config, priority=use_priority)
         await history_manager.push(granule, modified_time)
 
+        ds_doc = {
+            'id': collection.dataset_id,
+            'dataset_s': collection.dataset_id,
+            'latest_update_l': int(datetime.now().timestamp()),
+            'variables_s': dict(collection.dimension_names)['variable']
+        }
+
+        history_manager.push_dataset_docs([ds_doc])
+
     def add_plugin_collection(self, collection: Collection):
         history_manager = self._get_history_manager(None)
 
@@ -90,7 +100,16 @@ class CollectionProcessor:
             collection_config['config']['coords'] = {dim: collection_dimensions[dim]
                                                      for dim in collection_dimensions if dim != 'variable'}
 
-            history_manager._push_dataset(collection.dataset_id, collection.store_type, json.dumps(collection_config))
+            doc = {
+                'id': collection.dataset_id,
+                'dataset_s': collection.dataset_id,
+                'latest_update_l': int(datetime.now().timestamp()),
+                'store_type_s': collection.store_type,
+                'config': json.dumps(collection_config),
+                'source_s': 'collection_config'
+            }
+
+            history_manager.push_dataset_docs([doc])
 
     @staticmethod
     def _file_supported(file_path: str):
@@ -128,6 +147,8 @@ class CollectionProcessor:
 
     @staticmethod
     def _generate_ingestion_message(granule_path: str, collection: Collection) -> str:
+
+        print(collection.slices)
 
         config_dict = {
             'granule': {

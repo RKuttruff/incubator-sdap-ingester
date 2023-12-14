@@ -64,9 +64,29 @@ class Collection:
             raise RuntimeError('both variable and variables present in dimensionNames. Only one is allowed')
         new_dimension_names = [(k, v) for k, v in dimension_names_dict.items() if k not in ['variable', 'variables']]
         if 'variable' in dimension_names_dict:
-            if not isinstance(dimension_names_dict['variable'], str):
-                raise RuntimeError(f'variable in dimensionNames must be string type. value: {dimension_names_dict["variable"]}')
+            if not isinstance(dimension_names_dict['variable'], (str, dict)):
+                raise RuntimeError(f'variable in dimensionNames must be string or a dict: ("name", "cf_standard_name", '
+                                   f'"unit") -> string type. value: {dimension_names_dict["variable"]}')
+
+            if isinstance(dimension_names_dict['variable'], dict):
+                var_keys = set(dimension_names_dict['variable'].keys())
+
+                if not var_keys == {"name", "cf_standard_name", "unit"}:
+                    raise RuntimeError(
+                        f'dictionary definition for variable must only contain the keys: "name", "cf_standard_name", '
+                        f'"unit" type. value: {dimension_names_dict["variable"]}')
+
+                if not all([isinstance(v, (str, type(None))) for v in dimension_names_dict['variable'].values()]):
+                    raise RuntimeError(f'dictionary definition for variable must only contain string or null values. '
+                                       f'value: {dimension_names_dict["variable"]}')
+            else:
+                var_name = dimension_names_dict['variable']
+                dimension_names_dict['variable'] = dict(name=var_name, cf_standard_name=None, unit=None)
+
             new_dimension_names.append(('variable', json.dumps(dimension_names_dict['variable'])))
+
+            print(new_dimension_names)
+
             return new_dimension_names
         if 'variables' in dimension_names_dict:
             if not isinstance(dimension_names_dict['variables'], list):
@@ -97,7 +117,7 @@ class Collection:
             collection = Collection(dataset_id=properties['id'],
                                     projection=projection,
                                     dimension_names=frozenset(Collection.__decode_dimension_names(properties['dimensionNames'])),
-                                    slices=frozenset(slices),
+                                    slices=frozenset(slices.items()),
                                     path=properties['path'],
                                     historical_priority=properties['priority'],
                                     forward_processing_priority=properties.get('forward-processing-priority', None),

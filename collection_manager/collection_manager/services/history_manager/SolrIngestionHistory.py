@@ -83,17 +83,19 @@ class SolrIngestionHistory(IngestionHistory):
             self._solr_datasets.commit()
 
     @run_in_executor
-    def _push_dataset(self, dataset_id, type, config):
+    def push_dataset_docs(self, docs, overwrite=True):
         if self._solr_datasets:
-            if len(self._solr_datasets.search(q=f'id:{dataset_id}')) == 0:
-                self._solr_datasets.add([{
-                    'id': dataset_id,
-                    'dataset_s': dataset_id,
-                    'latest_update_l': int(datetime.now().timestamp()),
-                    'store_type_s': type,
-                    'config': config,
-                    'source_s': 'collection_config'
-                }])
+            to_add = []
+
+            for doc in docs:
+                doc_id = doc['id']
+
+                if overwrite or len(self._solr_datasets.search(q=f'id:{doc_id}')) == 0:
+                    self._solr_datasets.delete(q=f"id:{doc_id}")
+                    to_add.append(doc)
+
+            if len(to_add) > 0:
+                self._solr_datasets.add(to_add)
                 self._solr_datasets.commit()
 
     def _get_latest_file_update(self):
