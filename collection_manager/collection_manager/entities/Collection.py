@@ -89,6 +89,13 @@ class Collection:
         if 'variables' in dimension_names_dict:
             if not isinstance(dimension_names_dict['variables'], list):
                 raise RuntimeError(f'variable in dimensionNames must be list type. value: {dimension_names_dict["variables"]}')
+
+            for i in range(len(dimension_names_dict['variables'])):
+                v = dimension_names_dict['variables'][i]
+
+                if isinstance(v, str):
+                    dimension_names_dict['variables'][i] = dict(name=v, cf_standard_name=None, unit=None)
+
             new_dimension_names.append(('variable', json.dumps(dimension_names_dict['variables'])))
             return new_dimension_names
 
