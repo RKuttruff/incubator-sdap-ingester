@@ -18,7 +18,7 @@ import logging
 import os
 import pathlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 from fnmatch import fnmatch
 from typing import Optional
@@ -52,6 +52,7 @@ class Collection:
     group: str = None
     store_type: str = None
     config: str = None
+    meta: str = None
 
     @staticmethod
     def __decode_dimension_names(dimension_names_dict):
@@ -99,6 +100,45 @@ class Collection:
             new_dimension_names.append(('variable', json.dumps(dimension_names_dict['variables'])))
             return new_dimension_names
 
+
+    @staticmethod
+    def meta_dict(meta, prefix=''):
+        new_dict = {}
+
+        def dates(s):
+            if isinstance(s, datetime):
+                return s.strftime('%Y-%m-%dT%H:%M:%S%z')
+            elif isinstance(s, date):
+                return s.strftime('%Y-%m-%d')
+            else:
+                return s
+
+        for key in meta:
+            new_key = key if prefix == '' else f'{prefix}.{key}'
+            value = meta[key]
+
+            if new_key == 'coverage':
+                try:
+                    start = dates(value['dateStart'])
+                    stop = dates(value['dateStop'])
+                    bbox = value['bbox']
+
+                    new_dict[new_key] = f'Temporal range: {start} to {stop} | Spatial range: {bbox}'
+                    continue
+                except:
+                    pass
+
+            if isinstance(value, dict):
+                new_dict.update(Collection.meta_dict(value, new_key))
+            else:
+                new_dict[new_key] = repr(dates(value))
+
+        if prefix == '':
+            return json.dumps(new_dict)
+        else:
+            return new_dict.items()
+
+
     @staticmethod
     def from_dict(properties: dict):
         """
@@ -119,6 +159,8 @@ class Collection:
 
             projection = properties['projection'] if 'projection' in properties else None
 
+            meta = Collection.meta_dict(properties['meta']) if 'meta' in properties else None
+
             collection = Collection(dataset_id=properties['id'],
                                     projection=projection,
                                     dimension_names=frozenset(Collection.__decode_dimension_names(properties['dimensionNames'])),
@@ -132,7 +174,8 @@ class Collection:
                                     processors=extra_processors,
                                     group=properties.get('group'),
                                     store_type=store_type,
-                                    config=config
+                                    config=config,
+                                    meta=meta
                                     )
             return collection
         except KeyError as e:
