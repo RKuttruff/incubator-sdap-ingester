@@ -83,6 +83,9 @@ class CollectionProcessor:
             'variables_s': dict(collection.dimension_names)['variable']
         }
 
+        if collection.meta:
+            ds_doc['meta_s'] = collection.meta
+
         history_manager.push_dataset_docs([ds_doc])
 
     def add_plugin_collection(self, collection: Collection):
@@ -108,6 +111,9 @@ class CollectionProcessor:
                 'config': json.dumps(collection_config),
                 'source_s': 'collection_config'
             }
+
+            if collection.meta:
+                doc['meta_s'] = collection.meta
 
             history_manager.push_dataset_docs([doc])
 
