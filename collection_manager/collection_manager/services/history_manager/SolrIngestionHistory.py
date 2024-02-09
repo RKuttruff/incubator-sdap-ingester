@@ -162,7 +162,7 @@ class SolrIngestionHistory(IngestionHistory):
             self._add_field(schema_endpoint, collection_fields, "dataset_s", "string")
             self._add_field(schema_endpoint, collection_fields, "granule_s", "string")
             self._add_field(schema_endpoint, collection_fields, "granule_signature_s", "string")
-            self._add_field(schema_endpoint, collection_fields, "geo", "geo")
+            self._add_field(schema_endpoint, collection_fields, "geo", "geo", True)
 
             self._add_field_type(
                 schema_endpoint,
