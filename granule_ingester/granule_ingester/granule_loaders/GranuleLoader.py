@@ -23,7 +23,10 @@ from itertools import chain
 from datetime import datetime
 
 import aioboto3
+import boto3
 import rioxarray
+import rasterio as rio
+from rasterio.session import AWSSession
 import xarray as xr
 from granule_ingester.exceptions import GranuleLoadingError, PipelineBuildingError
 from granule_ingester.granule_loaders.Preprocessors import modules as module_mappings
@@ -72,10 +75,13 @@ class GranuleLoader:
     async def open(self) -> (xr.Dataset, str):
         resource_url = parse.urlparse(self._resource)
         if resource_url.scheme == 's3':
-            # We need to save a reference to the temporary granule file so we can delete it when the context manager
-            # closes. The file needs to be kept around until nothing is reading the dataset anymore.
-            self._granule_temp_file = await self._download_s3_file(self._resource)
-            file_path = self._granule_temp_file.name
+            if not self._tiff:
+                # We need to save a reference to the temporary granule file so we can delete it when the context manager
+                # closes. The file needs to be kept around until nothing is reading the dataset anymore.
+                self._granule_temp_file = await self._download_s3_file(self._resource)
+                file_path = self._granule_temp_file.name
+            else:
+                file_path = self._resource
         elif resource_url.scheme == '':
             file_path = self._resource
         else:
@@ -121,7 +127,16 @@ class GranuleLoader:
 
                 granule_time = determine_time(granule_name)
 
-                tiff = rioxarray.open_rasterio(file_path, mask_and_scale=True, band_as_variable=True)
+                if resource_url.scheme != 's3':
+                    tiff = rioxarray.open_rasterio(file_path, mask_and_scale=True, band_as_variable=True)
+                else:
+                    session = boto3.session.Session()
+
+                    with rio.Env(
+                        AWSSession(session),
+                        GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'
+                    ):
+                        tiff = rioxarray.open_rasterio(file_path, mask_and_scale=True, band_as_variable=True)
 
                 try:
                     tiff = tiff.rio.reproject(dst_crs='EPSG:4326', nodata=np.nan)
