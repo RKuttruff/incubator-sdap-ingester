@@ -861,6 +861,19 @@ cftime = "*"
 numpy = ">=1.7"
 
 [[package]]
+name = "nexusproto"
+version = "1.0.1"
+description = "Protobufs used while ingesting NEXUS tiles."
+optional = false
+python-versions = "*"
+files = [
+    {file = "nexusproto-1.0.1.tar.gz", hash = "sha256:790b33468ab7dafb1c4a3658b1eaa4f20517fe92fa0e874e79d3b9df0ab662e0"},
+]
+
+[package.dependencies]
+protobuf = "3.2.0"
+
+[[package]]
 name = "numpy"
 version = "1.21.6"
 description = "NumPy is the fundamental package for array computing with Python."
@@ -971,6 +984,26 @@ pytz = ">=2017.3"
 
 [package.extras]
 test = ["hypothesis (>=3.58)", "pytest (>=6.0)", "pytest-xdist"]
+
+[[package]]
+name = "protobuf"
+version = "3.2.0"
+description = "Protocol Buffers"
+optional = false
+python-versions = "*"
+files = [
+    {file = "protobuf-3.2.0-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:3c1e93adccb6df731b003993e1f094221a18694cb767f9a31fa41cc8965c1f80"},
+    {file = "protobuf-3.2.0-cp33-cp33m-manylinux1_x86_64.whl", hash = "sha256:af61de46537670c0929c74961409935afbefd1a4b77fe17344e83a2854c79ebd"},
+    {file = "protobuf-3.2.0-cp34-cp34m-manylinux1_x86_64.whl", hash = "sha256:b1b7af2e12c8ec41b12791b6300a418573a0ee4c561e1b28fc9dc42dcc4c0ff5"},
+    {file = "protobuf-3.2.0-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:8d742c2517e54eed287b3fe397140b386763a7b822357a413b3012372657f80b"},
+    {file = "protobuf-3.2.0-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:58abae3c80f93881a803e8e3a669f8c0e437fa00096e3ef6e16b19543da6b836"},
+    {file = "protobuf-3.2.0-py2.py3-none-any.whl", hash = "sha256:55030bccd91a54836b9c551b99234f5efbc9721c8b93c80569fbe94aca0b9c35"},
+    {file = "protobuf-3.2.0.tar.gz", hash = "sha256:a48475035c42d13284fd7bf3a2ffa193f8c472ad1e8539c8444ea7e2d25823a1"},
+]
+
+[package.dependencies]
+setuptools = "*"
+six = ">=1.9"
 
 [[package]]
 name = "pyparsing"
@@ -1245,6 +1278,19 @@ files = [
 
 [package.dependencies]
 numpy = ">=1.16.5,<1.23.0"
+
+[[package]]
+name = "sdap_ingester_common"
+version = "0.0.0"
+description = "a module of common functions for the sdap ingester components"
+optional = false
+python-versions = ">=3.7"
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../common"
 
 [[package]]
 name = "setuptools"
@@ -1552,4 +1598,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.17,<3.11"
-content-hash = "af656856eb3e8ae900ceb44950b1fb1f71c5639af0955c9e428ff11198c39fb8"
+content-hash = "a639952fba16adb8f6d2fc806b79e25bc7ee4a90d92f26ca57c4134cd6755545"

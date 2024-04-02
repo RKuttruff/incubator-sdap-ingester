@@ -34,6 +34,7 @@ classifiers=[
 
 [tool.poetry.dependencies]
 python = ">=3.8.17,<3.11"
+nexusproto = "1.0.1"
 cassandra-driver = "3.23.0"
 aiomultiprocess = "0.7.0"
 aioboto3 = "8.3.0"
@@ -54,6 +55,7 @@ aiohttp = ">=3.8.0"
 tenacity = "8.2.3"
 requests = ">=2.27.1"
 rioxarray = "*"
+sdap-ingester-common = {path = "../common"}
 
 [build-system]
 requires = ["poetry-core"]

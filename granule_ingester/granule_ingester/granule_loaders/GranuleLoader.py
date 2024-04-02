@@ -139,7 +139,7 @@ class GranuleLoader:
                         tiff = rioxarray.open_rasterio(file_path, mask_and_scale=True, band_as_variable=True)
 
                 try:
-                    tiff = tiff.rio.reproject(dst_crs='EPSG:4326', nodata=np.nan)
+                    tiff = tiff.rio.reproject(dst_crs='EPSG:4326')
                 except MissingCRS:
                     tiff = tiff.rio.write_crs('EPSG:4326').rio.reproject(dst_crs='EPSG:4326', nodata=np.nan)
 
