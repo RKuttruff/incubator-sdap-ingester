@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import unittest
+import warnings
 from os import path
 
 import numpy as np
@@ -122,6 +123,61 @@ class TestReadMurData(unittest.TestCase):
 
             masked_data = np.ma.masked_invalid(from_shaped_array(output_tile.tile.grid_tile.variable_data))
             self.assertEqual(50, np.ma.count(masked_data))
+
+    def test_single_width_coords(self):
+        reading_processor = GridReadingProcessor(['analysed_sst'], 'lat', 'lon', time='time')
+        granule_path = path.join(path.dirname(__file__), '../granules/not_empty_mur.nc4')
+
+        input_tile = nexusproto.NexusTile()
+        input_tile.summary.granule = granule_path
+
+        dimensions_to_slices = {
+            'time': slice(0, 1),
+            'lat': slice(50, 51),
+            'lon': slice(0, 5)
+        }
+        with xr.open_dataset(granule_path) as ds:
+            output_tile = reading_processor._generate_tile(ds, dimensions_to_slices, input_tile)
+
+            self.assertEqual(granule_path, output_tile.summary.granule, granule_path)
+            self.assertEqual(1451638800, output_tile.tile.grid_tile.time)
+            self.assertEqual([1, 5], output_tile.tile.grid_tile.variable_data.shape)
+            self.assertEqual([1], output_tile.tile.grid_tile.latitude.shape)
+            self.assertEqual([5], output_tile.tile.grid_tile.longitude.shape)
+
+        input_tile = nexusproto.NexusTile()
+        input_tile.summary.granule = granule_path
+
+        dimensions_to_slices = {
+            'time': slice(0, 1),
+            'lat': slice(0, 10),
+            'lon': slice(50, 51)
+        }
+        with xr.open_dataset(granule_path) as ds:
+            output_tile = reading_processor._generate_tile(ds, dimensions_to_slices, input_tile)
+
+            self.assertEqual(granule_path, output_tile.summary.granule, granule_path)
+            self.assertEqual(1451638800, output_tile.tile.grid_tile.time)
+            self.assertEqual([10, 1], output_tile.tile.grid_tile.variable_data.shape)
+            self.assertEqual([10], output_tile.tile.grid_tile.latitude.shape)
+            self.assertEqual([1], output_tile.tile.grid_tile.longitude.shape)
+
+        input_tile = nexusproto.NexusTile()
+        input_tile.summary.granule = granule_path
+
+        dimensions_to_slices = {
+            'time': slice(0, 1),
+            'lat': slice(50, 51),
+            'lon': slice(50, 51),
+        }
+        with xr.open_dataset(granule_path) as ds:
+            output_tile = reading_processor._generate_tile(ds, dimensions_to_slices, input_tile)
+
+            self.assertEqual(granule_path, output_tile.summary.granule, granule_path)
+            self.assertEqual(1451638800, output_tile.tile.grid_tile.time)
+            self.assertEqual([1, 1], output_tile.tile.grid_tile.variable_data.shape)
+            self.assertEqual([1], output_tile.tile.grid_tile.latitude.shape)
+            self.assertEqual([1], output_tile.tile.grid_tile.longitude.shape)
 
 
 class TestReadCcmpData(unittest.TestCase):
@@ -367,13 +423,15 @@ class TestCalendars(unittest.TestCase):
         tile = nexusproto.NexusTile()
 
         with xr.open_dataset(granule_path, decode_cf=True) as ds:
-            reading_processor = GridReadingProcessor(
-                [data_var],
-                lat_var,
-                lon_var,
-                time=time_var
-            )
-            tile = reading_processor._generate_tile(ds, dimensions_to_slices, tile)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', RuntimeWarning)
+                reading_processor = GridReadingProcessor(
+                    [data_var],
+                    lat_var,
+                    lon_var,
+                    time=time_var
+                )
+                tile = reading_processor._generate_tile(ds, dimensions_to_slices, tile)
             assert tile.tile.grid_tile.time
 
     def test_julian_calendar_tile(self):

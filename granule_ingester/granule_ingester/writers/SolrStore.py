@@ -21,7 +21,7 @@ import logging
 from asyncio import AbstractEventLoop
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Union, Tuple, Optional
 import os.path
 from urllib.parse import urlparse
 
@@ -56,7 +56,8 @@ class SolrStore(MetadataStore):
         self._granule_collection: str = 'nexusgranules'
         self._datasets_collection: str = 'nexusdatasets'
         self.log: logging.Logger = logging.getLogger(__name__)
-        self._solr: pysolr.Solr = None
+        self._solr: Optional[pysolr.Solr] = None
+        self._zk: Optional[pysolr.ZooKeeper] = None
         self._solr_granules: pysolr.Solr = None
         self._solr_datasets: pysolr.Solr = None
 
@@ -92,22 +93,32 @@ class SolrStore(MetadataStore):
             collections.update(json.loads(zk.zk.get(f"{parent_node}/{c}/state.json")[0].decode("utf-8")))
         zk.collections = collections
 
-    def _get_connection(self) -> Tuple[pysolr.Solr, pysolr.Solr, pysolr.Solr]:
+    def _get_connection(self) -> Tuple[pysolr.Solr, pysolr.Solr, pysolr.Solr, Union[pysolr.ZooKeeper, None]]:
         if self._zk_url:
             zk = pysolr.ZooKeeper(f"{self._zk_url}")
             self._set_solr_status(zk)
             return pysolr.SolrCloud(zk, self._collection, always_commit=True), \
                    pysolr.SolrCloud(zk, self._granule_collection, always_commit=True), \
-                   pysolr.SolrCloud(zk, self._datasets_collection, always_commit=True)
+                   pysolr.SolrCloud(zk, self._datasets_collection, always_commit=True), \
+                   zk
         elif self._solr_url:
             return pysolr.Solr(f'{self._solr_url}/solr/{self._collection}', always_commit=True), \
                    pysolr.Solr(f'{self._solr_url}/solr/{self._granule_collection}', always_commit=True), \
-                   pysolr.Solr(f'{self._solr_url}/solr/{self._datasets_collection}', always_commit=True)
+                   pysolr.Solr(f'{self._solr_url}/solr/{self._datasets_collection}', always_commit=True), \
+                   None
         else:
             raise RuntimeError("You must provide either solr_host or zookeeper_host.")
 
     def connect(self, loop: AbstractEventLoop = None):
-        self._solr, self._solr_granules, self._solr_datasets = self._get_connection()
+        self._solr, self._solr_granules, self._solr_datasets, self._zk = self._get_connection()
+
+    def close(self):
+        if self._solr is not None:
+            self._solr.get_session().close()
+
+        if self._zk is not None:
+            self._zk.zk.stop()
+            self._zk.zk.close()
 
     async def health_check(self):
         try:
@@ -115,6 +126,8 @@ class SolrStore(MetadataStore):
             connections[0].ping()
             connections[1].ping()
             connections[2].ping()
+
+            self.close()
         except pysolr.SolrError:
             raise SolrFailedHealthCheckError("Cannot connect to Solr!")
         except NoNodeError:
@@ -244,7 +257,8 @@ class SolrStore(MetadataStore):
             'tile_max_lon': bbox.lon_max,
             'tile_min_lat': bbox.lat_min,
             'tile_max_lat': bbox.lat_max,
-            'tile_depth': tile_data.depth,
+            'tile_min_elevation_d': tile_data.min_elevation,
+            'tile_max_elevation_d': tile_data.max_elevation,
             'tile_min_time_dt': min_time,
             'tile_max_time_dt': max_time,
             'tile_min_val_d': stats.min,

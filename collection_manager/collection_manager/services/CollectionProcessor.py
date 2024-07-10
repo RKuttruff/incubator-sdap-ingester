@@ -47,6 +47,7 @@ class CollectionProcessor:
         :return: None
         """
         if not self._file_supported(granule):
+            logger.warning(f'Tried to process unsupported file {granule}. Skipping.')
             return
 
         history_manager = self._get_history_manager(collection.dataset_id)
@@ -100,6 +101,23 @@ class CollectionProcessor:
 
             history_manager._push_dataset(collection.dataset_id, collection.store_type, json.dumps(collection_config))
 
+    def add_plugin_collection(self, collection: Collection):
+        history_manager = self._get_history_manager(None)
+
+        if isinstance(history_manager, SolrIngestionHistory):
+            collection_config = {
+                'path': collection.path,
+                'config': collection.config
+            }
+
+            collection_dimensions = dict(collection.dimension_names)
+
+            collection_config['config']['variables'] = collection_dimensions['variable']
+            collection_config['config']['coords'] = {dim: collection_dimensions[dim]
+                                                     for dim in collection_dimensions if dim != 'variable'}
+
+            history_manager._push_dataset(collection.dataset_id, collection.store_type, json.dumps(collection_config))
+
     @staticmethod
     def _file_supported(file_path: str):
         ext = os.path.splitext(file_path)[-1]
@@ -127,12 +145,22 @@ class CollectionProcessor:
 
         if collection.projection == 'Grid':
             processors.append({'name': 'forceAscendingLatitude'})
-        processors.append({'name': 'kelvinToCelsius'})
-        processors.append({
-            'name': 'tileSummary',
-            'dataset_name': collection.dataset_id
-        })
-        processors.append({'name': 'generateTileId'})
+
+        processors.extend([
+            {
+                'name': 'kelvinToCelsius'
+            },
+            {
+                'name': 'verifyShape'
+            },
+            {
+                'name': 'tileSummary',
+                'dataset_name': collection.dataset_id
+            },
+            {
+                'name': 'generateTileId'
+            },
+        ])
 
         return processors
     

@@ -84,14 +84,16 @@ class Collection:
         """
         Accepting either `variable` or `variables` from the configmap
         """
-        logger.debug(f'incoming properties dict: {properties}')
+        # Inhibiting this for now...
+        # logger.debug(f'Incoming properties dict: {properties}')
+
         try:
             date_to = datetime.fromisoformat(properties['to']) if 'to' in properties else None
             date_from = datetime.fromisoformat(properties['from']) if 'from' in properties else None
 
             store_type = properties.get('storeType', 'nexusproto')
 
-            slices = properties.get('slices', {})
+            slices = properties.get('slices', {}).items()
 
             preprocess = json.dumps(properties['preprocess']) if 'preprocess' in properties else None
             extra_processors = json.dumps(properties['processors']) if 'processors' in properties else None
@@ -102,7 +104,7 @@ class Collection:
             collection = Collection(dataset_id=properties['id'],
                                     projection=projection,
                                     dimension_names=frozenset(Collection.__decode_dimension_names(properties['dimensionNames'])),
-                                    slices=frozenset(slices.items()),
+                                    slices=frozenset(slices),
                                     path=properties['path'],
                                     historical_priority=properties['priority'],
                                     forward_processing_priority=properties.get('forward-processing-priority', None),

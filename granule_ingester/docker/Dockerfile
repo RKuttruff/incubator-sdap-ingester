@@ -23,6 +23,11 @@ COPY --chmod=755 granule_ingester/docker/install_python.sh /install_python.sh
 RUN /install_python.sh
 RUN ln -s /opt/python/3.8.17/bin/python3.8  /opt/python/3.8.17/bin/python
 
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 ENV PATH="/opt/python/3.8.17/bin:$PATH"
 
 COPY VERSION.txt /VERSION.txt
@@ -31,7 +36,7 @@ COPY granule_ingester/granule_ingester /sdap/granule_ingester
 COPY granule_ingester/docker/install_nexusproto.sh /sdap/install_nexusproto.sh
 COPY granule_ingester/docker/entrypoint.sh /entrypoint.sh
 
-COPY granule_ingester/README.md README DISCLAIMER LICENSE.txt NOTICE /sdap/
+COPY granule_ingester/README.md README LICENSE.txt NOTICE /sdap/
 
 ENV PYTHONUNBUFFERED=1 \
     # prevents python creating .pyc files
@@ -73,8 +78,7 @@ ARG BUILD_NEXUSPROTO
 ARG APACHE_NEXUSPROTO=https://github.com/apache/incubator-sdap-nexusproto.git
 ARG APACHE_NEXUSPROTO_BRANCH=master
 
-RUN ./install_nexusproto.sh
-
+RUN ./install_nexusproto.sh $APACHE_NEXUSPROTO $APACHE_NEXUSPROTO_BRANCH
 RUN cd /common && python setup.py install
 
 RUN pip install boto3==1.16.10
